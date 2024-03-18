@@ -9,5 +9,5 @@ dependencies = [
     "astropy",
     "matplotlib",
     "scipy",
-    "sklearn",
+    "scikit-learn",
 ]
