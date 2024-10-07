@@ -3,6 +3,7 @@ import astropy.units as u
 import functools
 import matplotlib.pyplot as plt
 import multiprocessing as mp
+import matplotlib.figure
 import os
 import numpy as np
 
@@ -58,13 +59,20 @@ def sample_model(mod: dict[str, object], dat: PlotDataError, lim: int) -> dict:
         'sample': u.Quantity(np.concatenate([d['sample'] for d in computed]))
     }
 
-@u.quantity_input
-def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, object]], **fig_kw):
-    gskw = {'height_ratios': (4, 1), 'hspace': 0.05}
-    fig, (data_ax, err_ax) = plt.subplots(
+
+def plot_data_error_given(
+    fig: matplotlib.figure.Figure,
+    sampled_models: list[dict[str, object]],
+    dat: PlotDataError,
+    gridspec_kw: dict=None,
+    data_kw: dict=None,
+    model_kw: dict[str, dict]=None
+):
+    gskw = gridspec_kw or {'height_ratios': (4, 1), 'hspace': 0.05}
+    data_ax, err_ax = fig.subplots(
         ncols=1, nrows=2,
         sharex=True,
-        gridspec_kw=gskw, **fig_kw
+        gridspec_kw=gskw
     )
 
     ct_edges = np.unique(dat.count_edges.flatten())
@@ -73,7 +81,8 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
         rate=dat.cts,
         error=dat.cts_err,
         ax=data_ax,
-        label='data'
+        label='data',
+        line_kw=data_kw
     )
     stairs_with_error(
         bins=ct_edges,
@@ -100,10 +109,13 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
         mid = np.median(sample, axis=0).flatten()
         total_model += mid.to(u.ct)
 
-        stair = data_ax.stairs(mid.value, ct_edges.value, label=m['name'])
+        line_kwargs = {}
+        if model_kw and m['name'] in model_kw:
+            line_kwargs = model_kw[m['name']]
+        stair = data_ax.stairs(mid.value, ct_edges.value, label=m['name'], **line_kwargs)
         col = stair.get_edgecolor()
         for s in sample:
-            data_ax.stairs(s.flatten().value, ct_edges.value, alpha=0.01, color=col)
+            data_ax.stairs(s.flatten().value, ct_edges.value, alpha=0.05, color=col)
 
     residual = (dat.cts - dat.bkg_cts - total_model) / dat.cts_err
     col = err_ax.stairs(residual, ct_edges.value, color='black').get_edgecolor()
@@ -123,4 +135,15 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
     print('reduced chi2', np.sum(np.nan_to_num(residual, posinf=0, neginf=0)**2))
     print('sqrt(chi2)', np.sqrt(np.sum(np.nan_to_num(residual * dat.cts_err, posinf=0, neginf=0)**2)))
     return {'fig': fig, 'axs': {'data': data_ax, 'err': err_ax}}
+
+
+@u.quantity_input
+def generic_plot_data_error(
+    dat: PlotDataError,
+    sampled_models: list[dict[str, object]],
+    gridspec_kw: dict=None,
+    **fig_kw
+):
+    figure = plt.figure(**fig_kw)
+    return plot_data_error_given(figure, sampled_models, dat, gridspec_kw=gridspec_kw)
 
