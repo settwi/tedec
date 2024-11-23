@@ -1,23 +1,59 @@
-from dataclasses import dataclass
 import astropy.units as u
 import functools
 import matplotlib.pyplot as plt
 import multiprocessing as mp
+import matplotlib.figure
 import os
 import numpy as np
 
 from stairs_with_error import stairs_with_error
+from sunkit_spex.legacy.fitting.fitter import Fitter
 
-@u.quantity_input
-@dataclass
 class PlotDataError:
-    cts: u.ct
-    cts_err: u.ct
-    bkg_cts: u.ct
-    count_edges: u.keV
-    photon_edges: u.keV
-    srm: u.cm**2 * u.ct / u.ph
-    effective_exposure: u.s
+    @u.quantity_input
+    def __init__(
+        self,
+        cts: u.ct,
+        cts_err: u.ct,
+        bkg_cts: u.ct,
+        count_edges: u.keV,
+        photon_edges: u.keV,
+        srm: u.cm**2 * u.ct / u.ph,
+        effective_exposure: u.s,
+    ):
+        self.cts = cts
+        self.cts_err = cts_err
+        self.bkg_cts = bkg_cts
+        self.count_edges = count_edges
+        self.photon_edges = photon_edges
+        self.srm = srm
+        self.effective_exposure = effective_exposure
+
+    @classmethod
+    def from_sunkit_spex_data(cls, fitter: Fitter):
+        '''Convert a "sunkit_spex" fitter object
+           into what the `nice_plotting` module is expecting
+        '''
+        d = fitter.data.loaded_spec_data['spectrum1']._loaded_spec_data
+
+        # Nonzero background only if we haven't done background subtraction previously.
+        scaled_bg = np.zeros_like(d['counts']) << u.ct
+        if 'extras' in d.keys() and 'background_rate' in d['extras']:
+            scaled_bg = (
+                d['extras']['background_rate'] *
+                d['effective_exposure'] *
+                d['count_channel_binning']
+            ) << u.ct
+
+        return cls(
+            cts=d['counts'] << u.ct,
+            cts_err=d['count_error'] << u.ct,
+            bkg_cts=scaled_bg,
+            count_edges=d['count_channel_bins'] << u.keV,
+            photon_edges=d['photon_channel_bins'] << u.keV,
+            srm=d['srm'] << u.cm**2 * u.ct / u.ph,
+            effective_exposure=np.atleast_1d(d['effective_exposure'])[None, :] << u.s
+        )
 
 
 def sample_operation(energies, params, func, srm, effective_exposure, name, these_indices):
@@ -58,13 +94,20 @@ def sample_model(mod: dict[str, object], dat: PlotDataError, lim: int) -> dict:
         'sample': u.Quantity(np.concatenate([d['sample'] for d in computed]))
     }
 
-@u.quantity_input
-def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, object]], **fig_kw):
-    gskw = {'height_ratios': (4, 1), 'hspace': 0.05}
-    fig, (data_ax, err_ax) = plt.subplots(
+
+def plot_data_error_given(
+    fig: matplotlib.figure.Figure,
+    sampled_models: list[dict[str, object]],
+    dat: PlotDataError,
+    gridspec_kw: dict=None,
+    data_kw: dict=None,
+    model_kw: dict[str, dict]=None
+):
+    gskw = gridspec_kw or {'height_ratios': (4, 1), 'hspace': 0.05}
+    data_ax, err_ax = fig.subplots(
         ncols=1, nrows=2,
         sharex=True,
-        gridspec_kw=gskw, **fig_kw
+        gridspec_kw=gskw
     )
 
     ct_edges = np.unique(dat.count_edges.flatten())
@@ -73,7 +116,8 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
         rate=dat.cts,
         error=dat.cts_err,
         ax=data_ax,
-        label='data'
+        label='data',
+        line_kw=data_kw
     )
     stairs_with_error(
         bins=ct_edges,
@@ -100,10 +144,13 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
         mid = np.median(sample, axis=0).flatten()
         total_model += mid.to(u.ct)
 
-        stair = data_ax.stairs(mid.value, ct_edges.value, label=m['name'])
+        line_kwargs = {}
+        if model_kw and m['name'] in model_kw:
+            line_kwargs = model_kw[m['name']]
+        stair = data_ax.stairs(mid.value, ct_edges.value, label=m['name'], **line_kwargs)
         col = stair.get_edgecolor()
         for s in sample:
-            data_ax.stairs(s.flatten().value, ct_edges.value, alpha=0.01, color=col)
+            data_ax.stairs(s.flatten().value, ct_edges.value, alpha=0.05, color=col)
 
     residual = (dat.cts - dat.bkg_cts - total_model) / dat.cts_err
     col = err_ax.stairs(residual, ct_edges.value, color='black').get_edgecolor()
@@ -123,4 +170,15 @@ def generic_plot_data_error(dat: PlotDataError, sampled_models: list[dict[str, o
     print('reduced chi2', np.sum(np.nan_to_num(residual, posinf=0, neginf=0)**2))
     print('sqrt(chi2)', np.sqrt(np.sum(np.nan_to_num(residual * dat.cts_err, posinf=0, neginf=0)**2)))
     return {'fig': fig, 'axs': {'data': data_ax, 'err': err_ax}}
+
+
+@u.quantity_input
+def generic_plot_data_error(
+    dat: PlotDataError,
+    sampled_models: list[dict[str, object]],
+    gridspec_kw: dict=None,
+    **fig_kw
+):
+    figure = plt.figure(**fig_kw)
+    return plot_data_error_given(figure, sampled_models, dat, gridspec_kw=gridspec_kw)
 
