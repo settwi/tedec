@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import astropy.units as u
 import functools
 import matplotlib.pyplot as plt
@@ -8,17 +7,53 @@ import os
 import numpy as np
 
 from stairs_with_error import stairs_with_error
+from sunkit_spex.legacy.fitting.fitter import Fitter
 
-@u.quantity_input
-@dataclass
 class PlotDataError:
-    cts: u.ct
-    cts_err: u.ct
-    bkg_cts: u.ct
-    count_edges: u.keV
-    photon_edges: u.keV
-    srm: u.cm**2 * u.ct / u.ph
-    effective_exposure: u.s
+    @u.quantity_input
+    def __init__(
+        self,
+        cts: u.ct,
+        cts_err: u.ct,
+        bkg_cts: u.ct,
+        count_edges: u.keV,
+        photon_edges: u.keV,
+        srm: u.cm**2 * u.ct / u.ph,
+        effective_exposure: u.s,
+    ):
+        self.cts = cts
+        self.cts_err = cts_err
+        self.bkg_cts = bkg_cts
+        self.count_edges = count_edges
+        self.photon_edges = photon_edges
+        self.srm = srm
+        self.effective_exposure = effective_exposure
+
+    @classmethod
+    def from_sunkit_spex_data(cls, fitter: Fitter):
+        '''Convert a "sunkit_spex" fitter object
+           into what the `nice_plotting` module is expecting
+        '''
+        d = fitter.data.loaded_spec_data['spectrum1']._loaded_spec_data
+
+        # Nonzero background only if we haven't done background subtraction previously.
+        scaled_bg = np.zeros_like(d['counts']) << u.ct
+        if 'extras' in d.keys() and 'background_rate' in d['extras']:
+            scaled_bg = (
+                d['extras']['background_rate'] *
+                d['effective_exposure'] *
+                d['count_channel_binning']
+            ) << u.ct
+
+        return cls(
+            cts=d['counts'] << u.ct,
+            cts_err=d['count_error'] << u.ct,
+            bkg_cts=scaled_bg,
+            count_edges=d['count_channel_bins'] << u.keV,
+            photon_edges=d['photon_channel_bins'] << u.keV,
+            srm=d['srm'] << u.cm**2 * u.ct / u.ph,
+            effective_exposure=np.atleast_1d(d['effective_exposure'])[None, :] << u.s
+        )
 
 
 def sample_operation(energies, params, func, srm, effective_exposure, name, these_indices):
