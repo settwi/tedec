@@ -9,7 +9,7 @@
     - how many time bins do we need?
 
 ## next steps
-- add uncertainty to the basic simulation data (sample the photons before adding bkg)
+- ~~add uncertainty to the basic simulation data (sample the photons before adding bkg)~~
 - do the basic simulation using a spectral response matrix---might help because high-E stuff gets pushed to lower E, maybe helping discriminate more
 - do the other flare categories the reviewer requested
     - weak nonthermal
