@@ -46,12 +46,12 @@ def quadratic_slew(a, b, steps):
     return a * t**2 + b * t + c
 
 
-def spike(t, location, duration, height):
-    slice_ = (t >= (location - duration / 2)) & (t < (location + duration / 2))
+def spike(t, location, rise, fall, height):
+    slice_ = (t >= (location - rise)) & (t < (location + fall))
 
     def spike(tt):
-        arg1 = (tt < duration / 2) * tt * (2 * height / duration)
-        arg2 = (tt >= duration / 2) * 2 * height * (1 - tt / duration)
+        arg1 = (tt < rise / 2) * tt * (2 * height / rise)
+        arg2 = (tt >= rise / 2) * 2 * height * (1 - tt / fall)
         return arg1 + arg2
 
     output = spike((t[1] - t[0]) * np.arange((slice_.sum())))
