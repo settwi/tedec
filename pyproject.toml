@@ -2,6 +2,9 @@
 requires = ["setuptools >= 61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["tedec"]
+
 [project]
 version = "0.1"
 name = "tedec"
@@ -9,5 +12,12 @@ dependencies = [
     "astropy",
     "matplotlib",
     "scipy",
-    "scikit-learn",
+]
+
+[project.optional-dependencies]
+extras = [
+    "jupyter",
+    "ipynb",
+    "pyqt6",
+    "yaff @ https://github.com/settwi/yaff/archive/refs/tags/v0.2.1.tar.gz",
 ]
