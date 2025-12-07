@@ -11,6 +11,7 @@ from yaff import fitting
 COULOMB_LOG = 20
 ELECTRON_MASS_ENERGY = (con.m_e * con.c**2).to(u.keV)
 
+
 @u.quantity_input()
 def warm_target_parameters(
     density: u.Quantity[u.cm**-3],
@@ -19,7 +20,7 @@ def warm_target_parameters(
     segment_length: u.Quantity[u.Mm],
     electron_flux: u.Quantity[1e35 * u.electron / u.s],
 ) -> tuple[u.Quantity[u.keV], u.Quantity[u.cm**-3]]:
-    r'''Here we compute the hyperparameters for the thick-warm target model.
+    r"""Here we compute the hyperparameters for the thick-warm target model.
     These parameters are defined in [Kontar+2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...809...35K/abstract),
     and further solidified in [Eduard Kontar's IDL code](https://hesperia.gsfc.nasa.gov/ssw/packages/xray/idl/f_thick_warm.pro).
 
@@ -30,18 +31,16 @@ def warm_target_parameters(
           If spatial diffusion were to not occur, E_min would be zero, leading to an unphysical situation where
           electrons pile up into the warm target region forever.
           This is better described in Kontar+2015 sections 2.2 and 2.2.1.
-    '''
+    """
     # First, we define the minimum integration energy E_min,
     # using equation (21) from Kontar+2015
 
     # The collision operator K is dominated by the Coulomb collision dynamics.
     # We write it here in SI units, adding appropriate factors; Kontar reports it in Gaussian cgs.
     # In both cases, it has units of (energy . length)^2
-    collision_factor = (
-        (2 * np.pi * (con.e.si)**4 * COULOMB_LOG)
-        /
-        (4 * np.pi * con.eps0)**2
-    )
+    collision_factor = (2 * np.pi * (con.e.si) ** 4 * COULOMB_LOG) / (
+        4 * np.pi * con.eps0
+    ) ** 2
 
     # The mean free path of the lowest energy electrons in the injected distribution should be
     # smaller than the physical scale of the loop segment which is thermalizing,
@@ -57,13 +56,13 @@ def warm_target_parameters(
         )
 
     # Thermalized electron stopping_distance= lambda in eqn 21 of Kontar+2015
-    temp_energy = (con.k_B * temperature)
+    temp_energy = con.k_B * temperature
     stopping_distance = temp_energy**2 / (2 * collision_factor * density)
 
     # Finally, we can compute the low-energy integration limit.
     # Note the factor of 3 in front comes from an adjustment made in
     # eqn 25, described in Kontar+2015 section 2.4
-    e_min = 3 * temp_energy * (5 * stopping_distance / segment_length)**4
+    e_min = 3 * temp_energy * (5 * stopping_distance / segment_length) ** 4
 
     E_CUT = 0.1 << u.keV
     if e_min > E_CUT:
@@ -74,34 +73,33 @@ def warm_target_parameters(
 
     # Now we can compute the emission measure of the electrons which were thermalized
     # in the loop segment. This is not explicitly defined in Kontar+2015, but
-    # if you note that EM = n^2V = nN, with N being the total number of 
+    # if you note that EM = n^2V = nN, with N being the total number of
     # thermalized electrons, we can see that the emission measure is indeed
     # present in eqn (19) of Kontar+2015.
     # We rearrange the equation and note that Ndot is the nonthermal electron flux.
     emission_measure = (
-        (3 * temp_energy**2 * np.pi) / (2 * collision_factor * con.c)
-        *
-        np.sqrt(ELECTRON_MASS_ENERGY / e_min)
-        *
-        electron_flux
+        (3 * temp_energy**2 * np.pi)
+        / (2 * collision_factor * con.c)
+        * np.sqrt(ELECTRON_MASS_ENERGY / e_min)
+        * electron_flux
     )
 
     return e_min.to(u.keV), (emission_measure / u.electron).to(u.cm**-3)
-    
+
 
 def warm_thick_target(args: dict[str, cm.ArgsT]):
     from sunkit_spex.legacy import thermal
 
-    params: dict[str, fitting.Parameter] = args['parameters']
-    ph_edges: np.ndarray = args['photon_energy_edges']
+    params: dict[str, fitting.Parameter] = args["parameters"]
+    ph_edges: np.ndarray = args["photon_energy_edges"]
 
     # See function definition for details
     _, em = warm_target_parameters(
-        params['loop_segment_density'].as_quantity(),
-        temp := params['temperature'].as_quantity(),
-        params['cutoff_energy'].as_quantity(),
-        params['loop_segment_length'].as_quantity(),
-        params['electron_flux'].as_quantity(),
+        params["loop_segment_density"].as_quantity(),
+        temp := params["temperature"].as_quantity(),
+        params["cutoff_energy"].as_quantity(),
+        params["loop_segment_length"].as_quantity(),
+        params["electron_flux"].as_quantity(),
     )
 
     # The warm target is just (cold thick target) + (additional thermalized emission)

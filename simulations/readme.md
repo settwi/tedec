@@ -1,17 +1,15 @@
-# simulations
-## step 1
-### basic.ipynb
-- "typical" flare with both strong thermal/nonthermal component
-- has photon decomposition with a simple background (constant + lines)
-- things seem to work when we have lots of counts.
-    - when do things start to fail?
-    - how few counts is reasonable?
-    - how many time bins do we need?
+# Simulations
+Here are a few different simulations of data applied to the temporal decomposition technique.
+The more developed version is in `simpler`.
 
-## next steps
-- ~~add uncertainty to the basic simulation data (sample the photons before adding bkg)~~
-- do the basic simulation using a spectral response matrix---might help because high-E stuff gets pushed to lower E, maybe helping discriminate more
-- do the other flare categories the reviewer requested
-    - weak nonthermal
-    - strong non-thermal (cold flare)
-- clarify count/photon thresholds
+## Simpler simulations
+- Located in `simpler`
+- Only the emission measure and electron flux are time-varying.
+- Three situations: typical flare, strong nonthermal, strong thermal.
+- Files are output by each notebook for processing later on if desired.
+- The files are pickles of fitting objects and some .png images.
+
+## More complex simulations
+- These are half-baked and have a more complex setup
+- Every flare parameter changes across time
+- Some are coupled, (e.g. temperature ~ integral of electron flux)
