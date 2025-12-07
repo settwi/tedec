@@ -6,8 +6,8 @@ font.size           : 12
 lines.linewidth     : 2
 
 axes.titlesize      : 16
-axes.labelsize      : 12
-axes.titlepad       : 12
+axes.labelsize      : 16
+axes.titlepad       : 16
 
 # figure.figsize      : 10, 8 
 figure.figsize      : 8, 6 
@@ -16,10 +16,10 @@ savefig.facecolor   : white
 
 lines.markersize    : 8
 
-legend.fontsize     : 12
+legend.fontsize     : 16
 
-xtick.labelsize     : 12
-ytick.labelsize     : 12
+xtick.labelsize     : 16
+ytick.labelsize     : 16
 
 xtick.direction     : in
 xtick.top           : True
