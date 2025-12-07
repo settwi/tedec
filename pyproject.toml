@@ -13,3 +13,11 @@ dependencies = [
     "matplotlib",
     "scipy",
 ]
+
+[project.optional-dependencies]
+simulations = [
+    "jupyter",
+    "ipynb",
+    "pyqt6",
+    "yaff @ https://github.com/settwi/yaff/archive/refs/tags/v0.2.tar.gz",
+]
