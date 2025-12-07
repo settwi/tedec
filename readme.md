@@ -25,22 +25,18 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 exec $SHELL
 
 # Create and activate a Python venv in your current directory
-uv venv --python 3.13.3
+uv venv --python 3.13.9
 source .venv/bin/activate
 
 # Install the package
-uv pip install .
-
-# Install `yaff` v0 if you want to run examples
-git clone https://github.com/settwi/yaff.git
-cd yaff
-git checkout v0
-uv pip install .[examples]
-# Go back to the tedec directory
-cd ..
+uv pip install -e '.[extras]'
+# If you don't want to run simulations or examples:
+# uv pip install -e '.'
 
 # To run the examples, while in the venv, run:
 python -m jupyter notebook
+
+# Ctrl + c to quit Jupyter
 
 # To exit the virtual environment:
 deactivate
@@ -53,5 +49,5 @@ rm -rf $HOME/.cache/uv
 rm $HOME/.cargo/bin/uv
 ```
 
-## How to use: see the examples in `examples`!
+## How to use: see the examples in `/examples`, or simulations in `/simulations`.
 ## _Be sure to run the Jupyter server using the venv created in the setup instructions._
