@@ -22,7 +22,8 @@ def summarize_directory(direc: str):
         name = pickle.stem.split(".")[0]
         plot_samples(fitter, direc / f"{name}-fit.png", burnin)
         print("Quantiles for", name)
-        print_quantiles(fitter, burnin)
+        prefix = ("Traditional" if "traditional" in name else "Decomposition")
+        print_quantiles(prefix, fitter, burnin)
         print()
 
 
@@ -45,13 +46,21 @@ def plot_samples(fr: fitting.BayesFitter, out_path: pathlib.Path, burnin: int) -
     plt.close(fig)
 
 
-def print_quantiles(fr: fitting.BayesFitter, burnin: int) -> None:
+def print_quantiles(prefix: str, fr: fitting.BayesFitter, burnin: int) -> None:
     quantiles = (0.025, 0.975)
     chain = fr.emcee_sampler.flatchain[burnin * fr.emcee_sampler.nwalkers :]
     param_quantiles = np.quantile(chain, q=quantiles, axis=0)
+    name_map = {
+        "temperature": "T",
+        "emission_measure": "EM",
+        "spectral_index": "$\\delta$",
+        "cutoff_energy": "$E_c$",
+        "electron_flux": "$\\varphi_e$"
+    }
     for n, q in zip(fr.free_param_names, param_quantiles.T):
         unit = fr.parameters[n].unit
-        print(n, unit, q)
+        a, b = q
+        print(f"{prefix} & {name_map[n]} [{unit.to_string(format='latex')}] & [{a:.2g}, {b:.2g}] \\tabularnewline")
 
 
 if __name__ == "__main__":
