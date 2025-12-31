@@ -78,7 +78,7 @@ def regular_decompose(
         )
         result = list(opt_res.x)
         inter = result.pop() if dp.constant_offset else 0
-        intercepts.append(inter)
+        intercepts.append(inter * row.size)
         coefs.append(result)
 
     return {"coefs": np.array(coefs), "intercepts": np.array(intercepts)}
