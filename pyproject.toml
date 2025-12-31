@@ -19,5 +19,8 @@ extras = [
     "jupyter",
     "ipynb",
     "pyqt6",
+    "sunpy[all]",
     "yaff @ https://github.com/settwi/yaff/archive/refs/tags/v0.2.1.tar.gz",
+    # Should work at commit bb544c44573d6de44e3d5ba08d06cab0059a4db7
+    "sunkit-spex @ https://github.com/sunpy/sunkit-spex.git",
 ]
